@@ -1,0 +1,11 @@
+[package]
+name = "grid-component"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+indexmap = "2.7.0"
+ndarray = "0.16.1"
+
+[dev-dependencies]
+fake = { version = "3.0", features = ["derive", "rust_decimal"] }
