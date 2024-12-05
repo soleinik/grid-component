@@ -6,11 +6,20 @@ use crate::DataValue;
 #[derive(Debug)]
 pub struct TableData {
     rows: Array2<DataValue>,
-    column_metas: IndexMap<String, usize>,
+    pub column_metas: IndexMap<String, usize>,
 }
 
 impl TableData {
     pub fn new(rows: usize, column_metas: IndexMap<String, usize>) -> Self {
+        let column_metas = column_metas
+            .into_iter()
+            .map(|(k, width)| {
+                let k = k.trim();
+                let k = if k.len() > width { &k[0..width] } else { k };
+                (k.to_string(), width)
+            })
+            .collect::<IndexMap<String, usize>>();
+
         TableData {
             rows: Array2::default((rows, column_metas.len())),
             column_metas,
@@ -33,6 +42,27 @@ impl TableData {
         assert!(col < self.column_metas.len() && row < self.rows.len());
         self.rows.get((row, col))
     }
+
+    pub fn format_row(&self, row: ndarray::ArrayView1<DataValue>) -> String {
+        self.column_metas
+            .iter()
+            .enumerate()
+            .fold(String::new(), |mut acc, (index, (key, __))| {
+                acc += &self.format(key, &row[index]);
+                acc += "│";
+                acc
+            })
+    }
+
+    // pub fn format_header(&self) -> String {
+    //     self.column_metas
+    //         .iter()
+    //         .fold(String::new(), |mut acc, (key, _width)| {
+    //             acc += &self.format(key, &DataValue::String(key.to_owned()));
+    //             acc += " | ";
+    //             acc
+    //         })
+    // }
 
     pub fn format(&self, key: &str, val: &DataValue) -> String {
         match val {
