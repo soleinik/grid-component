@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 pub fn test_table() -> TableData {
     let data = random_test_data();
 
-    let mut table = TableData::new(data.len(), table_meta());
+    let mut table = TableData::new("test data", data.len(), table_meta());
 
     for (row, data) in data.iter().enumerate() {
         table.set_value(row, 0, data.strike);
@@ -29,7 +29,7 @@ pub fn test_table() -> TableData {
     table
 }
 
-fn table_meta() -> IndexMap<String, usize> {
+fn table_meta() -> IndexMap<String, u32> {
     IndexMap::from([
         ("strike123456789".to_string(), 6),
         ("last $".to_string(), 8),
@@ -95,7 +95,7 @@ mod tests {
         let data = random_test_data();
         println!("rows:{}", data.len());
 
-        let mut table = TableData::new(data.len(), table_meta());
+        let mut table = TableData::new("test data", data.len(), table_meta());
 
         for (row, data) in data.iter().enumerate() {
             table.set_value(row, 0, data.strike);

@@ -1,15 +1,27 @@
+use chrono::NaiveDate;
+
 #[derive(Debug, Clone)]
 pub enum DataValue {
-    i64(i64),
-    f64(f64),
-    u64(u64),
+    I64(i64),
+    F64(f64),
+    F32(f32),
+    U64(u64),
+    U32(u32),
     Bool(bool),
     String(String),
+    Date(NaiveDate),
+    OptionDate(Option<NaiveDate>),
+    OptionF64(Option<f64>),
+    OptionF32(Option<f32>),
+    OptionI64(Option<i64>),
+    OptionU64(Option<u64>),
+    OptionU32(Option<u32>),
+    OptionString(Option<String>),
 }
 
 impl Default for DataValue {
     fn default() -> Self {
-        DataValue::i64(0)
+        DataValue::I64(0)
     }
 }
 
@@ -25,21 +37,27 @@ impl DataValue {
 // Implement From<i64> for DataValue
 impl From<i64> for DataValue {
     fn from(value: i64) -> Self {
-        DataValue::i64(value)
+        DataValue::I64(value)
     }
 }
 
 // Implement From<f64> for DataValue
 impl From<f64> for DataValue {
     fn from(value: f64) -> Self {
-        DataValue::f64(value)
+        DataValue::F64(value)
+    }
+}
+
+impl From<f32> for DataValue {
+    fn from(value: f32) -> Self {
+        DataValue::F32(value)
     }
 }
 
 // Implement From<u64> for DataValue
 impl From<u64> for DataValue {
     fn from(value: u64) -> Self {
-        DataValue::u64(value)
+        DataValue::U64(value)
     }
 }
 
@@ -57,9 +75,60 @@ impl From<String> for DataValue {
     }
 }
 
+impl From<Option<String>> for DataValue {
+    fn from(value: Option<String>) -> Self {
+        DataValue::OptionString(value)
+    }
+}
+
 // Implement From<&str> for DataValue for convenience
 impl From<&str> for DataValue {
     fn from(value: &str) -> Self {
         DataValue::String(value.to_string())
+    }
+}
+
+impl From<&NaiveDate> for DataValue {
+    fn from(value: &NaiveDate) -> Self {
+        DataValue::Date(value.clone())
+    }
+}
+impl From<Option<NaiveDate>> for DataValue {
+    fn from(value: Option<NaiveDate>) -> Self {
+        DataValue::OptionDate(value)
+    }
+}
+
+impl From<u32> for DataValue {
+    fn from(value: u32) -> Self {
+        DataValue::U32(value)
+    }
+}
+
+impl From<Option<f64>> for DataValue {
+    fn from(value: Option<f64>) -> Self {
+        DataValue::OptionF64(value)
+    }
+}
+
+impl From<Option<f32>> for DataValue {
+    fn from(value: Option<f32>) -> Self {
+        DataValue::OptionF32(value)
+    }
+}
+
+impl From<Option<i64>> for DataValue {
+    fn from(value: Option<i64>) -> Self {
+        DataValue::OptionI64(value)
+    }
+}
+impl From<Option<u64>> for DataValue {
+    fn from(value: Option<u64>) -> Self {
+        DataValue::OptionU64(value)
+    }
+}
+impl From<Option<u32>> for DataValue {
+    fn from(value: Option<u32>) -> Self {
+        DataValue::OptionU32(value)
     }
 }
