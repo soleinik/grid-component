@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 #[derive(Debug, Clone)]
 pub enum DataValue {
@@ -10,7 +10,11 @@ pub enum DataValue {
     Bool(bool),
     String(String),
     Date(NaiveDate),
+    Time(NaiveTime),
+    DateTime(NaiveDateTime),
     OptionDate(Option<NaiveDate>),
+    OptionTime(Option<NaiveTime>),
+    OptionDateTime(Option<NaiveDateTime>),
     OptionF64(Option<f64>),
     OptionF32(Option<f32>),
     OptionI64(Option<i64>),
@@ -96,6 +100,28 @@ impl From<&NaiveDate> for DataValue {
 impl From<Option<NaiveDate>> for DataValue {
     fn from(value: Option<NaiveDate>) -> Self {
         DataValue::OptionDate(value)
+    }
+}
+
+impl From<&NaiveTime> for DataValue {
+    fn from(value: &NaiveTime) -> Self {
+        DataValue::Time(value.clone())
+    }
+}
+impl From<Option<NaiveTime>> for DataValue {
+    fn from(value: Option<NaiveTime>) -> Self {
+        DataValue::OptionTime(value)
+    }
+}
+impl From<&NaiveDateTime> for DataValue {
+    fn from(value: &NaiveDateTime) -> Self {
+        DataValue::DateTime(value.clone())
+    }
+}
+
+impl From<Option<NaiveDateTime>> for DataValue {
+    fn from(value: Option<NaiveDateTime>) -> Self {
+        DataValue::OptionDateTime(value)
     }
 }
 

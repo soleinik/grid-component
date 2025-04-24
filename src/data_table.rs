@@ -1,6 +1,9 @@
+use std::cell::RefCell;
+
 use chrono::{Datelike, NaiveDate, Weekday};
 use indexmap::IndexMap;
 use ndarray::{Array2, Axis};
+use numfmt::{Formatter, Precision, Scales};
 
 use crate::DataValue;
 
@@ -9,6 +12,7 @@ pub struct TableData {
     name: String,
     rows: Array2<DataValue>,
     pub column_metas: IndexMap<String, u32>,
+    formatter: RefCell<Formatter>,
 }
 
 impl TableData {
@@ -30,12 +34,18 @@ impl TableData {
 
         assert!(meta.len() == len, "{:#?} != {:#?}", column_metas, meta);
 
-        println!("{:#?} != {:#?}", column_metas, meta);
+        // you probably want to change in "From"
+        let formatter = Formatter::new()
+            .separator(',')
+            .unwrap()
+            .scales(Scales::short())
+            .precision(Precision::Significance(4));
 
         TableData {
             name: name.to_string(),
             rows: Array2::default((rows, meta.len())),
             column_metas: meta,
+            formatter: RefCell::new(formatter),
         }
     }
 
@@ -48,8 +58,17 @@ impl TableData {
         self.rows.len()
     }
 
+    pub fn column(&self, index: usize) -> ndarray::ArrayView1<DataValue> {
+        self.rows.column(index)
+    }
+
     // Method to set a value at a specific row and column
-    pub fn set_value<T: Into<DataValue>>(&mut self, row: usize, col: usize, value: T) {
+    pub fn set_value<T: Into<DataValue> + std::fmt::Debug>(
+        &mut self,
+        row: usize,
+        col: usize,
+        value: T,
+    ) {
         assert!(
             col < self.column_metas.len(),
             "column:{col} out of range {}",
@@ -104,25 +123,30 @@ impl TableData {
             }
 
             DataValue::F64(val) => {
-                format!("{val:>width$.2}")
+                let mut fmt = self.formatter.borrow_mut();
+                let val = fmt.fmt2(*val);
+                format!("{val:>width$}")
+
+                //format!("{val:>width$.2}")
             }
             DataValue::OptionF64(val) => {
-                if val.is_none() {
-                    std::iter::repeat(" ").take(width).collect()
+                if let Some(val) = val {
+                    let mut fmt = self.formatter.borrow_mut();
+                    let val = fmt.fmt2(*val);
+                    format!("{val:>width$}")
+                    //format!("{val:>width$.2}")
                 } else {
-                    let val = val.unwrap();
-                    format!("{val:>width$.2}")
+                    std::iter::repeat(" ").take(width).collect()
                 }
             }
             DataValue::F32(val) => {
                 format!("{val:>width$.4}")
             }
             DataValue::OptionF32(val) => {
-                if val.is_none() {
-                    std::iter::repeat(" ").take(width).collect()
-                } else {
-                    let val = val.unwrap();
+                if let Some(val) = val {
                     format!("{val:>width$.4}")
+                } else {
+                    std::iter::repeat(" ").take(width).collect()
                 }
             }
 
@@ -190,21 +214,54 @@ impl TableData {
                 }
             }
 
+            DataValue::Time(val) => {
+                format!("{:^width$}", val.format("%H:%M"))
+            }
+            DataValue::OptionTime(val) => {
+                if let Some(val) = val {
+                    format!("{:^width$}", val.format("%H:%M"))
+                } else {
+                    std::iter::repeat(" ").take(width).collect()
+                }
+            }
+            DataValue::DateTime(val) => {
+                format!("{:^width$}", val.format("%Y-%m-%d %H:%M"))
+            }
+
+            DataValue::OptionDateTime(val) => {
+                if let Some(val) = val {
+                    format!("{:^width$}", val.format("%Y-%m-%d %H:%M"))
+                } else {
+                    std::iter::repeat(" ").take(width).collect()
+                }
+            }
+
             DataValue::U32(val) => {
                 format!("{val:^width$}")
             }
             DataValue::OptionU32(val) => {
-                if val.is_none() {
-                    std::iter::repeat(" ").take(width).collect()
-                } else {
-                    let val = val.unwrap();
+                if let Some(val) = val {
                     format!("{val:^width$}")
+                } else {
+                    std::iter::repeat(" ").take(width).collect()
                 }
             }
         };
         if ret.len() > width {
-            let mut ret = ret[0..width].to_string();
-            ret.pop();
+            let mut char_boundary_index = 0;
+
+            // Find the valid character boundary closest to `width`
+            for (i, _) in ret.char_indices() {
+                if i >= width {
+                    break;
+                }
+                char_boundary_index = i;
+            }
+
+            let mut ret = ret[0..char_boundary_index].to_string();
+
+            //let mut ret = ret[0..width].to_string();
+            //ret.pop();
             ret += "<";
             return ret;
         }
@@ -223,10 +280,19 @@ impl From<(&str, usize, &[(&str, u32)])> for TableData {
         let meta = v.into_iter().collect::<IndexMap<String, u32>>();
         assert!(value.2.len() == meta.len(), "{:#?} != {:#?}", value.2, meta);
 
+        let formatter = Formatter::new()
+            .separator(',')
+            .unwrap()
+            .scales(Scales::short())
+            .precision(Precision::Significance(4));
+
+        //.precision(Precision::Decimals(2));
+
         TableData {
             name: value.0.to_string(),
             rows: Array2::default((value.1, value.2.len() as usize)),
             column_metas: meta,
+            formatter: RefCell::new(formatter),
         }
     }
 }
