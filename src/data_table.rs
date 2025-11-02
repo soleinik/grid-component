@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use chrono::{Datelike, NaiveDate, Weekday};
 use indexmap::IndexMap;
-use ndarray::{Array2, Axis};
+use ndarray::{Array1, Array2, Axis};
 use numfmt::{Formatter, Precision, Scales};
 
 use crate::DataValue;
@@ -39,7 +39,8 @@ impl TableData {
             .separator(',')
             .unwrap()
             .scales(Scales::short())
-            .precision(Precision::Significance(4));
+            //.precision(Precision::Significance(5))
+            .precision(Precision::Decimals(2));
 
         TableData {
             name: name.to_string(),
@@ -49,16 +50,62 @@ impl TableData {
         }
     }
 
+    pub fn add_row(&mut self, row: ndarray::ArrayView1<DataValue>) {
+        let mut rows: Vec<Array1<_>> = self
+            .rows
+            .axis_iter(ndarray::Axis(0))
+            .map(|row| row.to_owned())
+            .collect();
+
+        rows.push(row.to_owned());
+
+        self.rows = ndarray::stack(
+            ndarray::Axis(0),
+            &rows.iter().map(|r| r.view()).collect::<Vec<_>>(),
+        )
+        .unwrap();
+    }
+
+    pub fn delete_row(&mut self, index: usize) {
+        let rows: Vec<_> = self
+            .rows
+            .axis_iter(ndarray::Axis(0))
+            .enumerate()
+            .filter_map(|(i, row)| {
+                if i != index {
+                    Some(row.to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if rows.is_empty() {
+            // If deleting last row → make empty 2D array with same number of columns
+            let empty = ndarray::Array2::from_shape_vec((0, self.rows.ncols()), vec![]).unwrap();
+            self.rows = empty;
+        } else {
+            self.rows = ndarray::stack(
+                ndarray::Axis(0),
+                &rows.iter().map(|r| r.view()).collect::<Vec<_>>(),
+            )
+            .unwrap();
+        }
+    }
+
     // Method to iterate over rows one at a time
-    pub fn iter_rows(&self) -> impl Iterator<Item = ndarray::ArrayView1<DataValue>> {
+    pub fn iter_rows(&self) -> impl Iterator<Item = ndarray::ArrayView1<'_, DataValue>> {
         self.rows.axis_iter(Axis(0))
     }
 
     pub fn len(&self) -> usize {
-        self.rows.len()
+        self.rows.nrows()
+    }
+    pub fn width(&self) -> usize {
+        self.rows.ncols()
     }
 
-    pub fn column(&self, index: usize) -> ndarray::ArrayView1<DataValue> {
+    pub fn column(&self, index: usize) -> ndarray::ArrayView1<'_, DataValue> {
         self.rows.column(index)
     }
 
@@ -80,7 +127,11 @@ impl TableData {
 
     // Method to get a value at a specific row and column
     pub fn get_value(&self, row: usize, col: usize) -> Option<&DataValue> {
-        assert!(col < self.column_metas.len() && row < self.rows.len());
+        assert!(
+            col < self.column_metas.len() && row < self.rows.len(),
+            "column:{col} out of range {}",
+            self.column_metas.len()
+        );
         self.rows.get((row, col))
     }
 
@@ -284,7 +335,8 @@ impl From<(&str, usize, &[(&str, u32)])> for TableData {
             .separator(',')
             .unwrap()
             .scales(Scales::short())
-            .precision(Precision::Significance(4));
+            //.precision(Precision::Significance(4));
+            .precision(Precision::Decimals(2));
 
         //.precision(Precision::Decimals(2));
 
@@ -301,7 +353,7 @@ impl std::fmt::Display for TableData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tbl = String::new();
 
-        tbl += &format!("Report: {}\n", self.name);
+        tbl += &format!("{}\n", self.name);
 
         let header = self
             .column_metas

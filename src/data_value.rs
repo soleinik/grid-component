@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 #[derive(Debug, Clone)]
@@ -35,6 +37,12 @@ impl DataValue {
         T: Into<DataValue>,
     {
         v.into()
+    }
+}
+
+impl Display for DataValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
